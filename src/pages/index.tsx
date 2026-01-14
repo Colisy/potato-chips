@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
 import CucumberLevel from '@/components/levels/CucumberLevel';
 import TeaLevel from '@/components/levels/TeaLevel';
 import OldLadyLevel from '@/components/levels/OldLadyLevel';

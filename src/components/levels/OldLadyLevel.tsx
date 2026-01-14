@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import RoastOverlay from '../RoastOverlay';
-import { speak } from '../../utils/aiService';
 import { useInactivityTimer } from '../../hooks/useInactivityTimer';
 
 interface Props {

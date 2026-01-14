@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { YanziHandIcon, KitchenKnifeIcon } from '../icons/GameIcons';
 import RoastOverlay from '../RoastOverlay';
-import { speak } from '../../utils/aiService';
 import { useInactivityTimer } from '../../hooks/useInactivityTimer';
 
 interface Props {
@@ -20,7 +19,6 @@ export default function CucumberLevel({ onSuccess, onFail }: Props) {
   const [roastEvent, setRoastEvent] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const handMoveRef = useRef<NodeJS.Timeout | null>(null);
 
   const targetSlices = 20;
 
@@ -139,7 +137,7 @@ export default function CucumberLevel({ onSuccess, onFail }: Props) {
       const distance = plateX - knifeX; // 到盘子的距离
       
       // 优化速度计算：近距离时速度小，远距离时速度大
-      let baseVx;
+      let baseVx: number;
       if (distance < 100) {
         // 距离很近时，使用较小的速度
         baseVx = 2 + distance / 50;
@@ -166,7 +164,7 @@ export default function CucumberLevel({ onSuccess, onFail }: Props) {
         const sliceWidth = cucumberWidth / targetSlices; // 每片黄瓜的宽度 ≈ 27.8px
         const initialHandPos = 380; // 手的初始位置
         
-        setHandPos(prev => {
+        setHandPos(() => {
           // 手的新位置 = 初始位置 - (已切片数 * 每片宽度)
           const newPos = initialHandPos - (next * sliceWidth);
           // 确保不超出边界

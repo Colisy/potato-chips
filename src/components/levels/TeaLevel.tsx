@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import RoastOverlay from '../RoastOverlay';
-import { speak } from '../../utils/aiService';
 import { useInactivityTimer } from '../../hooks/useInactivityTimer';
 
 interface Props {
@@ -24,7 +23,6 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
   const [timeLeft, setTimeLeft] = useState(40);
   const [score, setScore] = useState(0);
   const [leaves, setLeaves] = useState<Leaf[]>([]);
-  const [collectedCount, setCollectedCount] = useState(0);
   const [collectedLeaves, setCollectedLeaves] = useState<Leaf[]>([]); // 茶碗内的茶叶
   const [draggedLeaf, setDraggedLeaf] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -49,7 +47,6 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
     setPhase('playing');
     setTimeLeft(timeLimit);
     setScore(0);
-    setCollectedCount(0);
     setCollectedLeaves([]); // 重置茶碗内的茶叶
     generateLeaves();
   };
@@ -182,7 +179,6 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
       setLeaves(ls => ls.filter(l => l.id !== draggedLeaf));
       
       // 增加分数
-      setCollectedCount(prev => prev + 1);
       // setRoastEvent(`摘茶叶`);
       setScore(s => {
         const next = s + 1;
