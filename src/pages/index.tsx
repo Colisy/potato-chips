@@ -14,7 +14,7 @@ import {
 type GameState = 'Cucumber' | 'Tea' | 'OldLady' | 'Success' | 'Fail' | 'Start';
 
 export default function ShupianGame() {
-  const [currentLevel, setCurrentLevel] = useState<GameState>('OldLady');
+  const [currentLevel, setCurrentLevel] = useState<GameState>('Start');
   const [musicStarted, setMusicStarted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
