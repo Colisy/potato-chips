@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, useRef } from 'react';
 import RoastOverlay from '../RoastOverlay';
 import { useInactivityTimer } from '../../hooks/useInactivityTimer';
@@ -19,7 +20,9 @@ interface Leaf {
 }
 
 export default function TeaLevel({ onSuccess, onFail }: Props) {
-  const [phase, setPhase] = useState<'intro' | 'playing' | 'success' | 'fail'>('intro');
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'success' | 'fail'>(
+    'intro'
+  );
   const [timeLeft, setTimeLeft] = useState(40);
   const [score, setScore] = useState(0);
   const [leaves, setLeaves] = useState<Leaf[]>([]);
@@ -27,10 +30,12 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
   const [draggedLeaf, setDraggedLeaf] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [roastEvent, setRoastEvent] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 }); // 鼠标位置
+  const [isMouseDown, setIsMouseDown] = useState(false); // 鼠标按下状态
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const teaAreaRef = useRef<HTMLDivElement>(null);
   const teaBowlRef = useRef<HTMLDivElement>(null);
-  
+
   const maxScore = 15;
   const timeLimit = 40;
 
@@ -40,7 +45,7 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
     timeout: 3000, // 3秒
     onTimeout: () => {
       setRoastEvent(`速度太慢，用户一动不动 时间：${Date.now()}`);
-    }
+    },
   });
 
   const startLevel = () => {
@@ -56,20 +61,20 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
     const trayRadius = 120; // 盘子半径（300px/2 - 边框和边距）
     const centerX = 150; // 盘子中心X坐标
     const centerY = 150; // 盘子中心Y坐标
-    
+
     for (let i = 0; i < 20; i++) {
       // 使用极坐标在圆形区域内生成茶叶
       const angle = Math.random() * 2 * Math.PI; // 随机角度
       const distance = Math.sqrt(Math.random()) * trayRadius; // 随机距离，使用平方根确保均匀分布
-      
+
       const x = centerX + distance * Math.cos(angle) - 25; // 减去茶叶尺寸的一半
       const y = centerY + distance * Math.sin(angle) - 25;
-      
+
       newLeaves.push({
         id: i,
         x: Math.max(0, Math.min(x, 250)), // 确保在边界内
         y: Math.max(0, Math.min(y, 250)),
-        rotation: Math.random() * 360
+        rotation: Math.random() * 360,
       });
     }
     setLeaves(newLeaves);
@@ -96,7 +101,7 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
   }, [phase]);
   const handleMouseDown = (e: React.MouseEvent, leafId: number) => {
     e.preventDefault();
-    const leaf = leaves.find(l => l.id === leafId);
+    const leaf = leaves.find((l) => l.id === leafId);
     if (!leaf || !teaAreaRef.current || leaf.isCollected) return; // 已收集的茶叶不能拖拽
 
     // 重置超时计时器，因为用户开始操作了
@@ -108,35 +113,53 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
 
     setDraggedLeaf(leafId);
     setDragOffset({ x: offsetX, y: offsetY });
-    
+
     // 保存原始位置
-    setLeaves(ls => ls.map(l => 
-      l.id === leafId 
-        ? { ...l, isDragging: true, originalX: l.x, originalY: l.y }
-        : l
-    ));
+    setLeaves((ls) =>
+      ls.map((l) =>
+        l.id === leafId
+          ? { ...l, isDragging: true, originalX: l.x, originalY: l.y }
+          : l
+      )
+    );
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    // 更新鼠标位置（相对于茶叶区域）
+    if (teaAreaRef.current) {
+      const rect = teaAreaRef.current.getBoundingClientRect();
+      setMousePosition({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+
+    // 处理茶叶拖拽
     if (draggedLeaf === null || !teaAreaRef.current) return;
 
     const rect = teaAreaRef.current.getBoundingClientRect();
     const newX = e.clientX - rect.left - dragOffset.x;
     const newY = e.clientY - rect.top - dragOffset.y;
 
-    setLeaves(ls => ls.map(l => 
-      l.id === draggedLeaf 
-        ? { ...l, x: newX, y: newY }
-        : l
-    ));
+    setLeaves((ls) =>
+      ls.map((l) => (l.id === draggedLeaf ? { ...l, x: newX, y: newY } : l))
+    );
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (draggedLeaf === null || !teaAreaRef.current || !teaBowlRef.current) return;
+  const handleAreaMouseDown = () => setIsMouseDown(true);
+
+  const handleAreaMouseUp = (e: React.MouseEvent) => {
+    setIsMouseDown(false);
+    handleLeafMouseUp(e);
+  };
+
+  const handleLeafMouseUp = (e: React.MouseEvent) => {
+    if (draggedLeaf === null || !teaAreaRef.current || !teaBowlRef.current)
+      return;
 
     const teaAreaRect = teaAreaRef.current.getBoundingClientRect();
     const bowlRect = teaBowlRef.current.getBoundingClientRect();
-    
+
     const mouseX = e.clientX - teaAreaRect.left;
     const mouseY = e.clientY - teaAreaRect.top;
 
@@ -152,35 +175,35 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
     if (distance <= bowlRadius) {
       // 成功拖拽到茶碗，移除这个茶叶并添加到茶碗内
       console.log('SUCCESS! Collecting leaf');
-      
+
       // if ((score + 1) % 5 === 0) {
-       
-        setRoastEvent(`摘茶叶中 时间：${Date.now()}`);
+
+      setRoastEvent(`摘茶叶中 时间：${Date.now()}`);
       // }
-      
-      const draggedLeafData = leaves.find(l => l.id === draggedLeaf);
+
+      const draggedLeafData = leaves.find((l) => l.id === draggedLeaf);
       if (draggedLeafData) {
         // 在茶碗内生成随机位置（相对于茶碗中心）
         const bowlLeafX = 75 + (Math.random() - 0.5) * 50; // 茶碗内随机X位置 (100px中心 ± 25px)
         const bowlLeafY = 75 + (Math.random() - 0.5) * 50; // 茶碗内随机Y位置
-        
+
         const collectedLeaf: Leaf = {
           ...draggedLeafData,
           x: bowlLeafX,
           y: bowlLeafY,
           rotation: Math.random() * 360,
           isDragging: false,
-          isCollected: true
+          isCollected: true,
         };
-        
-        setCollectedLeaves(prev => [...prev, collectedLeaf]);
+
+        setCollectedLeaves((prev) => [...prev, collectedLeaf]);
       }
-      
-      setLeaves(ls => ls.filter(l => l.id !== draggedLeaf));
-      
+
+      setLeaves((ls) => ls.filter((l) => l.id !== draggedLeaf));
+
       // 增加分数
       // setRoastEvent(`摘茶叶`);
-      setScore(s => {
+      setScore((s) => {
         const next = s + 1;
         if (next >= maxScore) {
           setPhase('success');
@@ -192,11 +215,18 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
       // 没有拖拽到茶碗，恢复原位置
       console.log('FAILED! Returning to original position');
       setRoastEvent(`茶叶掉了 时间：${Date.now()}`);
-      setLeaves(ls => ls.map(l => 
-        l.id === draggedLeaf 
-          ? { ...l, x: l.originalX || l.x, y: l.originalY || l.y, isDragging: false }
-          : l
-      ));
+      setLeaves((ls) =>
+        ls.map((l) =>
+          l.id === draggedLeaf
+            ? {
+                ...l,
+                x: l.originalX || l.x,
+                y: l.originalY || l.y,
+                isDragging: false,
+              }
+            : l
+        )
+      );
     }
 
     setDraggedLeaf(null);
@@ -205,8 +235,6 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
 
   return (
     <div className="tea-stage">
-     
-      
       {phase === 'intro' && (
         <div className="overlay tea-intro-overlay">
           <div className="dialog-box">
@@ -220,11 +248,15 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
             </div>
             <div className="dialog-title">巷口青草茶店</div>
             <div className="dialog-content">
-              任务：帮老板捡选晒在门口的绿茶叶。<br/>
-              方式：用鼠标拖拽篮子里的茶叶到右边的杯中。<br/>
+              任务：帮老板捡选晒在门口的绿茶叶。
+              <br />
+              方式：用鼠标拖拽篮子里的茶叶到右边的杯中。
+              <br />
               老板就会愿意告诉燕姿小偷往哪去了喔！
             </div>
-            <button className="btn-start" onClick={startLevel}>开始摘茶叶</button>
+            <button className="btn-start" onClick={startLevel}>
+              开始摘茶叶
+            </button>
           </div>
         </div>
       )}
@@ -234,35 +266,91 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
           <div className="timer-container">
             <div className="timer-icon">⏰</div>
             <div className="timer-bar">
-              <div 
-                className="timer-fill" 
-                style={{ 
+              <div
+                className="timer-fill"
+                style={{
                   width: `${(timeLeft / timeLimit) * 100}%`,
-                  background: timeLeft < 10 ? 'linear-gradient(90deg, #f44336, #ff5722)' : undefined
-                }} 
+                  background:
+                    timeLeft < 10
+                      ? 'linear-gradient(90deg, #f44336, #ff5722)'
+                      : undefined,
+                }}
               />
             </div>
           </div>
 
-          <div className="tea-area" ref={teaAreaRef} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+          <div
+            className="tea-area"
+            ref={teaAreaRef}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleAreaMouseUp}
+            onMouseDown={handleAreaMouseDown}
+            onMouseLeave={() => setIsMouseDown(false)}
+          >
+            {/* 跟随鼠标的手部SVG图标 */}
+
+            <div
+              className="custom-cursor-hand"
+              style={{
+                left: mousePosition.x - 40, // 调整偏移，让手指指向鼠标位置
+                top: mousePosition.y - 40,
+              }}
+            >
+              <img
+                src="/svg/pick.svg"
+                alt="手部光标"
+                className="hand-pointer"
+                style={{ opacity: isMouseDown ? 1 : 0 }}
+              />
+              <img
+                src="/svg/pick2.svg"
+                alt="手部光标"
+                className="hand2-pointer"
+                style={{ opacity: isMouseDown ? 0 : 1 }}
+              />
+            </div>
+
             <div className="bamboo-tray">
               <div className="tea-leaves-container">
-                {leaves.map(l => (
-                  <div 
-                    key={l.id} 
-                    className={`tea-leaf ${l.isDragging ? 'dragging' : ''} ${l.isCollected ? 'collected' : ''}`}
-                    style={{ 
-                      left: l.x, 
+                {leaves.map((l) => (
+                  <div
+                    key={l.id}
+                    className={`tea-leaf ${l.isDragging ? 'dragging' : ''} ${
+                      l.isCollected ? 'collected' : ''
+                    }`}
+                    style={{
+                      left: l.x,
                       top: l.y,
-                      zIndex: l.isDragging ? 1000 : (l.isCollected ? 10 : 1),
-                      cursor: l.isCollected ? 'default' : 'pointer'
+                      zIndex: l.isDragging ? 1000 : l.isCollected ? 10 : 1,
+                      cursor: l.isCollected ? 'default' : 'pointer',
                     }}
                     onMouseDown={(e) => handleMouseDown(e, l.id)}
                   >
                     <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
-                      <ellipse cx="25" cy="25" rx="8" ry="20" fill="#4a7c2c" transform={`rotate(${l.rotation} 25 25)`}/>
-                      <ellipse cx="25" cy="25" rx="6" ry="18" fill="#5a9c3c" transform={`rotate(${l.rotation} 25 25)`}/>
-                      <line x1="25" y1="10" x2="25" y2="40" stroke="#2d5016" strokeWidth="1"/>
+                      <ellipse
+                        cx="25"
+                        cy="25"
+                        rx="8"
+                        ry="20"
+                        fill="#4a7c2c"
+                        transform={`rotate(${l.rotation} 25 25)`}
+                      />
+                      <ellipse
+                        cx="25"
+                        cy="25"
+                        rx="6"
+                        ry="18"
+                        fill="#5a9c3c"
+                        transform={`rotate(${l.rotation} 25 25)`}
+                      />
+                      <line
+                        x1="25"
+                        y1="10"
+                        x2="25"
+                        y2="40"
+                        stroke="#2d5016"
+                        strokeWidth="1"
+                      />
                     </svg>
                   </div>
                 ))}
@@ -271,21 +359,42 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
 
             <div className="tea-bowl" ref={teaBowlRef}>
               {/* 显示茶碗内收集到的茶叶 */}
-              {collectedLeaves.map(leaf => (
-                <div 
+              {collectedLeaves.map((leaf) => (
+                <div
                   key={`collected-${leaf.id}`}
                   className="tea-leaf collected"
-                  style={{ 
-                    left: leaf.x, 
+                  style={{
+                    left: leaf.x,
                     top: leaf.y,
                     position: 'absolute',
-                    zIndex: 10
+                    zIndex: 10,
                   }}
                 >
                   <svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
-                    <ellipse cx="25" cy="25" rx="8" ry="20" fill="#4a7c2c" transform={`rotate(${leaf.rotation} 25 25)`}/>
-                    <ellipse cx="25" cy="25" rx="6" ry="18" fill="#5a9c3c" transform={`rotate(${leaf.rotation} 25 25)`}/>
-                    <line x1="25" y1="10" x2="25" y2="40" stroke="#2d5016" strokeWidth="1"/>
+                    <ellipse
+                      cx="25"
+                      cy="25"
+                      rx="8"
+                      ry="20"
+                      fill="#4a7c2c"
+                      transform={`rotate(${leaf.rotation} 25 25)`}
+                    />
+                    <ellipse
+                      cx="25"
+                      cy="25"
+                      rx="6"
+                      ry="18"
+                      fill="#5a9c3c"
+                      transform={`rotate(${leaf.rotation} 25 25)`}
+                    />
+                    <line
+                      x1="25"
+                      y1="10"
+                      x2="25"
+                      y2="40"
+                      stroke="#2d5016"
+                      strokeWidth="1"
+                    />
                   </svg>
                 </div>
               ))}
@@ -293,20 +402,27 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
           </div>
 
           <div className="completion-container completion-container-tea">
-            <span>收集进度：{score}/{maxScore}</span>
+            <span>
+              收集进度：{score}/{maxScore}
+            </span>
             <div className="completion-bar">
-              <div className="completion-fill" style={{ width: `${(score / maxScore) * 100}%` }}></div>
+              <div
+                className="completion-fill"
+                style={{ width: `${(score / maxScore) * 100}%` }}
+              ></div>
             </div>
           </div>
         </div>
       )}
-      <RoastOverlay 
-        event={roastEvent} 
+      <RoastOverlay
+        event={roastEvent}
         gameContext={
-          phase === 'fail' ? '泡茶失败烫到手' : 
-          phase === 'success' ? '成功泡好茶' : 
-          '正在泡茶'
-        } 
+          phase === 'fail'
+            ? '泡茶失败烫到手'
+            : phase === 'success'
+            ? '成功泡好茶'
+            : '正在泡茶'
+        }
       />
 
       {phase === 'fail' && (
@@ -318,9 +434,10 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
               </div>
             </div>
             <h2 className="dialog-title">时间到了！</h2>
-            <p className="dialog-content" style={{textAlign: 'center'}}>
-              你收集了 { score } 片茶叶<br/>
-            差一点就成功了，再试一次吧！
+            <p className="dialog-content" style={{ textAlign: 'center' }}>
+              你收集了 {score} 片茶叶
+              <br />
+              差一点就成功了，再试一次吧！
             </p>
           </div>
         </div>
@@ -334,8 +451,9 @@ export default function TeaLevel({ onSuccess, onFail }: Props) {
               </div>
             </div>
             <h2 className="dialog-title">成功！</h2>
-            <p className="dialog-content" style={{textAlign: 'center'}}>
-              太棒了！你成功收集了所有茶叶！<br/>
+            <p className="dialog-content" style={{ textAlign: 'center' }}>
+              太棒了！你成功收集了所有茶叶！
+              <br />
               茶店老板很满意！
             </p>
           </div>

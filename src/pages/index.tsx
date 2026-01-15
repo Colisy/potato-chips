@@ -83,13 +83,18 @@ export default function ShupianGame() {
     <div className="game-wrapper">
       {/* 背景音乐提示 */}
       {musicStarted && (
-        <div 
+        <div
           className="music-notice"
           onClick={handleMusicNoticeClick}
           style={{ cursor: 'pointer' }}
           title={isPlaying ? '点击暂停音乐' : '点击播放音乐'}
         >
-          {isPlaying ? '🎵' : '⏸️'} 孙燕姿《Tonight,I feel close to you》
+          {isPlaying ? (
+            '🎵'
+          ) : (
+            <img src="/svg/play.svg" alt="播放" className="play-icon" />
+          )}{' '}
+          孙燕姿《Tonight,I feel close to you》
         </div>
       )}
 
